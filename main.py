@@ -11,6 +11,9 @@ from bot.core.database import Database
 from bot.core.auth import AuthManager
 from bot.plugins.overseerr.api import OverseerrClient
 from bot.plugins.overseerr.plugin import OverseerrPlugin
+from bot.plugins.lidarr.api import LidarrClient
+from bot.plugins.lidarr.plugin import LidarrPlugin
+from bot.plugins.media_coordinator import MediaCoordinator
 from bot.web import create_web_app, run_web_server
 from bot.web.auth import hash_password
 
@@ -53,24 +56,52 @@ async def main():
         default_role=auth_config.get("default_role", "none"),
     )
 
-    # Load enabled plugins
+    # Load enabled plugins via media coordinator
     enabled = config.get("plugins.enabled", []) or []
+    backends = {}
 
     if "overseerr" in enabled:
         overseerr_config = config["overseerr"]
-        api = OverseerrClient(
+        overseerr_api = OverseerrClient(
             base_url=overseerr_config["url"],
             api_key=overseerr_config["api_key"],
         )
-        plugin = OverseerrPlugin(
-            api=api,
+        overseerr_plugin = OverseerrPlugin(
+            api=overseerr_api,
             db=db,
             irc_colors=config.get("formatting.irc_colors", True),
             session_timeout=config.get("session.timeout_seconds", 300),
         )
-        bot.dispatcher.register_plugin(plugin)
-        await plugin.on_load()
+        backends["movie"] = overseerr_plugin
+        backends["tv"] = overseerr_plugin
+        await overseerr_plugin.on_load()
         logger.info("Overseerr plugin loaded")
+
+    if "lidarr" in enabled:
+        lidarr_config = config["lidarr"]
+        lidarr_api = LidarrClient(
+            base_url=lidarr_config["url"],
+            api_key=lidarr_config["api_key"],
+            quality_profile_id=lidarr_config.get("quality_profile_id", 1),
+            metadata_profile_id=lidarr_config.get("metadata_profile_id", 1),
+            root_folder_path=lidarr_config.get("root_folder_path", "/music"),
+        )
+        lidarr_plugin = LidarrPlugin(
+            api=lidarr_api,
+            db=db,
+            irc_colors=config.get("formatting.irc_colors", True),
+            session_timeout=config.get("session.timeout_seconds", 300),
+        )
+        backends["music"] = lidarr_plugin
+        await lidarr_plugin.on_load()
+        logger.info("Lidarr plugin loaded")
+
+    if backends:
+        coordinator = MediaCoordinator(
+            backends=backends,
+            session_timeout=config.get("session.timeout_seconds", 300),
+        )
+        bot.dispatcher.register_plugin(coordinator)
 
     # Start web UI
     web_password = os.environ.get("WEB_PASSWORD")

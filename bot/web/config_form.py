@@ -115,7 +115,13 @@ def validate_config(form: dict) -> list[str]:
         errors.append("Default role must be 'none', 'user', or 'admin'.")
 
     # Plugin validation
-    enabled_plugins = form.getall("plugins.enabled") if hasattr(form, "getall") else form.get("plugins.enabled", [])
+    if hasattr(form, "getall"):
+        try:
+            enabled_plugins = form.getall("plugins.enabled")
+        except KeyError:
+            enabled_plugins = []
+    else:
+        enabled_plugins = form.get("plugins.enabled", [])
     if isinstance(enabled_plugins, str):
         enabled_plugins = [enabled_plugins]
 
@@ -174,7 +180,13 @@ def build_config_dict(form: dict, current: dict) -> dict:
     }
 
     # Plugins section
-    enabled = form.getall("plugins.enabled") if hasattr(form, "getall") else form.get("plugins.enabled", [])
+    if hasattr(form, "getall"):
+        try:
+            enabled = form.getall("plugins.enabled")
+        except KeyError:
+            enabled = []
+    else:
+        enabled = form.get("plugins.enabled", [])
     if isinstance(enabled, str):
         enabled = [enabled]
     config["plugins"] = {"enabled": enabled or []}

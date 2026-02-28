@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - Relayarr{% endblock %}
+
+{% block header_right %}
+<a href="/logout" class="btn btn-small">Logout</a>
+{% endblock %}
+
+{% block content %}
+<div class="config-container">
+    {% if success %}
+    <div class="alert alert-success">Configuration saved. Restart the bot to apply changes.</div>
+    {% endif %}
+    {% if errors %}
+    <div class="alert alert-error">
+        <ul>
+        {% for error in errors %}
+            <li>{{ error }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/save">
+        <!-- CSS-only tabs -->
+        <div class="tabs">
+            <input type="radio" name="tab" id="tab-irc" checked>
+            <label for="tab-irc">IRC</label>
+
+            <input type="radio" name="tab" id="tab-auth">
+            <label for="tab-auth">Auth</label>
+
+            <input type="radio" name="tab" id="tab-plugins">
+            <label for="tab-plugins">Plugins</label>
+
+            <input type="radio" name="tab" id="tab-advanced">
+            <label for="tab-advanced">Advanced</label>
+
+            <!-- Tab panels -->
+            <div class="tab-panel" id="panel-irc">
+                <h3>IRC Server</h3>
+                <div class="form-group">
+                    <label for="irc-server">Server</label>
+                    <input type="text" id="irc-server" name="irc.server" value="{{ config.irc.server }}" placeholder="irc.example.com">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="irc-port">Port</label>
+                        <input type="number" id="irc-port" name="irc.port" value="{{ config.irc.port }}">
+                    </div>
+                    <div class="form-group form-checkbox">
+                        <label>
+                            <input type="checkbox" name="irc.ssl" {% if config.irc.ssl %}checked{% endif %}>
+                            SSL/TLS
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="irc-nickname">Nickname</label>
+                    <input type="text" id="irc-nickname" name="irc.nickname" value="{{ config.irc.nickname }}" maxlength="16" placeholder="Relayarr">
+                </div>
+                <div class="form-group">
+                    <label for="irc-channels">Channels (one per line)</label>
+                    <textarea id="irc-channels" name="irc.channels" rows="3" placeholder="#channel1&#10;#channel2">{{ config.irc.channels | join('\n') }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="irc-prefix">Command Prefix</label>
+                    <input type="text" id="irc-prefix" name="irc.command_prefix" value="{{ config.irc.command_prefix }}" maxlength="1">
+                </div>
+            </div>
+
+            <div class="tab-panel" id="panel-auth">
+                <h3>Authentication</h3>
+                <div class="form-group">
+                    <label for="auth-admins">Admin Hostmasks (one per line)</label>
+                    <textarea id="auth-admins" name="auth.admins" rows="3" placeholder="*!*@admin.host">{{ config.auth.admins | join('\n') }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="auth-users">User Hostmasks (one per line)</label>
+                    <textarea id="auth-users" name="auth.users" rows="3" placeholder="*!*@*.users.host">{{ config.auth.users | join('\n') }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="auth-default-role">Default Role</label>
+                    <select id="auth-default-role" name="auth.default_role">
+                        <option value="none" {% if config.auth.default_role == 'none' %}selected{% endif %}>None</option>
+                        <option value="user" {% if config.auth.default_role == 'user' %}selected{% endif %}>User</option>
+                        <option value="admin" {% if config.auth.default_role == 'admin' %}selected{% endif %}>Admin</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="panel-plugins">
+                <h3>Plugins</h3>
+                <div class="form-group form-checkbox">
+                    <label>
+                        <input type="checkbox" name="plugins.enabled" value="overseerr" {% if 'overseerr' in config.plugins.enabled %}checked{% endif %}>
+                        Overseerr
+                    </label>
+                </div>
+                <div class="plugin-config">
+                    <h4>Overseerr Settings</h4>
+                    <div class="form-group">
+                        <label for="overseerr-url">Overseerr URL</label>
+                        <input type="text" id="overseerr-url" name="overseerr.url" value="{{ config.overseerr.url }}" placeholder="http://overseerr:5055">
+                    </div>
+                    <div class="form-group">
+                        <label for="overseerr-api-key">API Key</label>
+                        <input type="text" id="overseerr-api-key" name="overseerr.api_key" value="{{ config.overseerr.api_key }}" placeholder="Enter API key">
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="panel-advanced">
+                <h3>Advanced</h3>
+                <div class="form-group">
+                    <label for="db-path">Database Path</label>
+                    <input type="text" id="db-path" name="database.path" value="{{ config.database.path }}">
+                </div>
+                <div class="form-group">
+                    <label for="session-timeout">Session Timeout (seconds)</label>
+                    <input type="number" id="session-timeout" name="session.timeout_seconds" value="{{ config.session.timeout_seconds }}" min="30">
+                </div>
+                <div class="form-group form-checkbox">
+                    <label>
+                        <input type="checkbox" name="formatting.irc_colors" {% if config.formatting.irc_colors %}checked{% endif %}>
+                        Enable IRC Colors
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="web-port">Web UI Port</label>
+                    <input type="number" id="web-port" name="web.port" value="{{ config.web.port }}" min="1024" max="65535">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save Configuration</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

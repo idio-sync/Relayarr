@@ -9,6 +9,7 @@ from aiohttp_session.cookie_storage import EncryptedCookieStorage
 from cryptography.fernet import Fernet
 
 from bot.web.auth import auth_middleware
+from bot.web.routes import setup_routes
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +25,16 @@ def create_web_app(config_path: Path, password_hash: bytes, secret_key: bytes | 
         password_hash: bcrypt hash of the web UI password.
         secret_key: 32-byte Fernet key for cookie encryption. Generated if not provided.
     """
-    app = web.Application(middlewares=[auth_middleware])
+    app = web.Application()
 
-    # Session setup with encrypted cookies
+    # Session setup with encrypted cookies (must be registered before auth middleware)
     if secret_key is None:
         secret_key = Fernet.generate_key()
     fernet_key = secret_key[:32] if len(secret_key) > 32 else secret_key
     aiohttp_session.setup(app, EncryptedCookieStorage(fernet_key))
+
+    # Auth middleware runs after session middleware so get_session() works
+    app.middlewares.append(auth_middleware)
 
     # Jinja2 templates
     aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(str(TEMPLATES_DIR)))
@@ -41,6 +45,9 @@ def create_web_app(config_path: Path, password_hash: bytes, secret_key: bytes | 
 
     # Static files
     app.router.add_static("/static/", path=str(STATIC_DIR), name="static")
+
+    # Route handlers
+    setup_routes(app)
 
     return app
 

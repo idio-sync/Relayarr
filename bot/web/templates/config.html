@@ -108,6 +108,38 @@
                         <input type="text" id="overseerr-api-key" name="overseerr.api_key" value="{{ config.overseerr.api_key }}" placeholder="Enter API key">
                     </div>
                 </div>
+
+                <div class="form-group form-checkbox">
+                    <label>
+                        <input type="checkbox" name="plugins.enabled" value="lidarr" {% if 'lidarr' in config.plugins.enabled %}checked{% endif %}>
+                        Lidarr (Music)
+                    </label>
+                </div>
+                <div class="plugin-config">
+                    <h4>Lidarr Settings</h4>
+                    <div class="form-group">
+                        <label for="lidarr-url">Lidarr URL</label>
+                        <input type="text" id="lidarr-url" name="lidarr.url" value="{{ config.lidarr.url }}" placeholder="http://lidarr:8686">
+                    </div>
+                    <div class="form-group">
+                        <label for="lidarr-api-key">API Key</label>
+                        <input type="text" id="lidarr-api-key" name="lidarr.api_key" value="{{ config.lidarr.api_key }}" placeholder="Enter API key">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="lidarr-quality">Quality Profile ID</label>
+                            <input type="number" id="lidarr-quality" name="lidarr.quality_profile_id" value="{{ config.lidarr.quality_profile_id }}" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="lidarr-metadata">Metadata Profile ID</label>
+                            <input type="number" id="lidarr-metadata" name="lidarr.metadata_profile_id" value="{{ config.lidarr.metadata_profile_id }}" min="1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="lidarr-root">Root Folder Path</label>
+                        <input type="text" id="lidarr-root" name="lidarr.root_folder_path" value="{{ config.lidarr.root_folder_path }}" placeholder="/music">
+                    </div>
+                </div>
             </div>
 
             <div class="tab-panel" id="panel-advanced">

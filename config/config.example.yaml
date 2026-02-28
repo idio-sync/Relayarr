@@ -19,9 +19,17 @@ overseerr:
   url: "http://overseerr:5055"
   api_key: "${OVERSEERR_API_KEY}"
 
+lidarr:
+  url: "http://lidarr:8686"
+  api_key: "${LIDARR_API_KEY}"
+  quality_profile_id: 1
+  metadata_profile_id: 1
+  root_folder_path: "/music"
+
 plugins:
   enabled:
     - overseerr
+    # - lidarr
 
 database:
   path: "/data/bot.db"

@@ -32,6 +32,12 @@ auth:
 overseerr:
   url: "http://overseerr:5055"
   api_key: "real-secret-key"
+lidarr:
+  url: "http://lidarr:8686"
+  api_key: "lidarr-secret-key"
+  quality_profile_id: 1
+  metadata_profile_id: 1
+  root_folder_path: "/music"
 plugins:
   enabled:
     - overseerr
@@ -78,6 +84,18 @@ class TestLoadConfigForForm:
         # Should show raw ${SOME_VAR} masked, not "resolved"
         assert data["overseerr"]["api_key"] == MASK
         del os.environ["SOME_VAR"]
+
+    def test_masks_lidarr_api_key(self, tmp_path):
+        p = write_config(tmp_path)
+        data = load_config_for_form(p)
+        assert data["lidarr"]["api_key"] == MASK
+
+    def test_lidarr_defaults_for_missing(self, tmp_path):
+        p = write_config(tmp_path, "irc:\n  server: test\n")
+        data = load_config_for_form(p)
+        assert data["lidarr"]["url"] == ""
+        assert data["lidarr"]["quality_profile_id"] == 1
+        assert data["lidarr"]["root_folder_path"] == "/music"
 
     def test_defaults_for_missing_sections(self, tmp_path):
         p = write_config(tmp_path, "irc:\n  server: test\n")
@@ -154,6 +172,20 @@ class TestValidation:
         errors = validate_config(form)
         assert any("overseerr" in e.lower() for e in errors)
 
+    def test_lidarr_url_required_when_enabled(self):
+        form = self._valid_form()
+        form["plugins.enabled"] = "lidarr"
+        form["lidarr.url"] = ""
+        errors = validate_config(form)
+        assert any("lidarr" in e.lower() for e in errors)
+
+    def test_lidarr_valid_when_url_provided(self):
+        form = self._valid_form()
+        form["plugins.enabled"] = "lidarr"
+        form["lidarr.url"] = "http://lidarr:8686"
+        errors = validate_config(form)
+        assert not any("lidarr" in e.lower() for e in errors)
+
     def test_session_timeout_too_low(self):
         form = self._valid_form()
         form["session.timeout_seconds"] = "10"
@@ -195,6 +227,44 @@ class TestBuildConfigDict:
         assert result["auth"]["admins"] == ["*!*@admin", "*!*@mod"]
         assert result["overseerr"]["api_key"] == "new-key"
         assert result["formatting"]["irc_colors"] is True
+
+    def test_builds_lidarr_section(self):
+        form = {
+            "irc.server": "irc.test.com", "irc.port": "6667",
+            "irc.ssl": "on", "irc.nickname": "Bot",
+            "irc.channels": "#a", "irc.command_prefix": "!",
+            "auth.admins": "", "auth.users": "", "auth.default_role": "none",
+            "overseerr.url": "", "overseerr.api_key": "",
+            "lidarr.url": "http://lidarr:8686", "lidarr.api_key": "key123",
+            "lidarr.quality_profile_id": "2", "lidarr.metadata_profile_id": "3",
+            "lidarr.root_folder_path": "/data/music",
+            "database.path": "/data/bot.db",
+            "session.timeout_seconds": "300",
+            "web.port": "9090",
+        }
+        result = build_config_dict(form, {})
+        assert result["lidarr"]["url"] == "http://lidarr:8686"
+        assert result["lidarr"]["api_key"] == "key123"
+        assert result["lidarr"]["quality_profile_id"] == 2
+        assert result["lidarr"]["metadata_profile_id"] == 3
+        assert result["lidarr"]["root_folder_path"] == "/data/music"
+
+    def test_preserves_masked_lidarr_api_key(self):
+        form = {
+            "irc.server": "test", "irc.port": "6697", "irc.nickname": "Bot",
+            "irc.channels": "#a", "irc.command_prefix": "!",
+            "auth.admins": "", "auth.users": "", "auth.default_role": "none",
+            "overseerr.url": "", "overseerr.api_key": "",
+            "lidarr.url": "http://lidarr:8686", "lidarr.api_key": MASK,
+            "lidarr.quality_profile_id": "1", "lidarr.metadata_profile_id": "1",
+            "lidarr.root_folder_path": "/music",
+            "database.path": "/data/bot.db",
+            "session.timeout_seconds": "300",
+            "web.port": "9090",
+        }
+        current = {"lidarr": {"api_key": "original-lidarr-key"}}
+        result = build_config_dict(form, current)
+        assert result["lidarr"]["api_key"] == "original-lidarr-key"
 
     def test_preserves_masked_api_key(self):
         form = {

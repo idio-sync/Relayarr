@@ -5,7 +5,7 @@ from typing import Any
 import yaml
 
 MASK = "********"
-SENSITIVE_FIELDS = {"overseerr.api_key"}
+SENSITIVE_FIELDS = {"overseerr.api_key", "lidarr.api_key"}
 
 
 def _get_nested(data: dict, dotted_key: str) -> Any:
@@ -52,6 +52,12 @@ def load_config_for_form(config_path: Path) -> dict:
     data.setdefault("overseerr", {})
     data["overseerr"].setdefault("url", "")
     data["overseerr"].setdefault("api_key", "")
+    data.setdefault("lidarr", {})
+    data["lidarr"].setdefault("url", "")
+    data["lidarr"].setdefault("api_key", "")
+    data["lidarr"].setdefault("quality_profile_id", 1)
+    data["lidarr"].setdefault("metadata_profile_id", 1)
+    data["lidarr"].setdefault("root_folder_path", "/music")
     data.setdefault("plugins", {})
     data["plugins"].setdefault("enabled", [])
     data.setdefault("database", {})
@@ -130,6 +136,11 @@ def validate_config(form: dict) -> list[str]:
         if not overseerr_url:
             errors.append("Overseerr URL is required when the plugin is enabled.")
 
+    if "lidarr" in enabled_plugins:
+        lidarr_url = form.get("lidarr.url", "").strip()
+        if not lidarr_url:
+            errors.append("Lidarr URL is required when the plugin is enabled.")
+
     # Session validation
     try:
         timeout = int(form.get("session.timeout_seconds", 0))
@@ -177,6 +188,18 @@ def build_config_dict(form: dict, current: dict) -> dict:
     config["overseerr"] = {
         "url": form.get("overseerr.url", "").strip(),
         "api_key": api_key_value,
+    }
+
+    # Lidarr section
+    lidarr_api_key = form.get("lidarr.api_key", "")
+    if lidarr_api_key == MASK:
+        lidarr_api_key = _get_nested(current, "lidarr.api_key") or ""
+    config["lidarr"] = {
+        "url": form.get("lidarr.url", "").strip(),
+        "api_key": lidarr_api_key,
+        "quality_profile_id": int(form.get("lidarr.quality_profile_id", 1)),
+        "metadata_profile_id": int(form.get("lidarr.metadata_profile_id", 1)),
+        "root_folder_path": form.get("lidarr.root_folder_path", "/music").strip(),
     }
 
     # Plugins section

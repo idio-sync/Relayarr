@@ -1,12 +1,12 @@
 # Relayarr
 
 ## Project Overview
-IRC bot that interfaces with media management APIs (Overseerr/Seerr) for requesting media. Plugin-based architecture for extensibility. Includes a web UI for configuration.
+IRC bot that interfaces with media management APIs (Overseerr, Lidarr) for requesting media. Plugin-based architecture for extensibility. Includes a web UI for configuration.
 
 ## Tech Stack
 - Python 3.12, asyncio throughout
 - `irc` (jaraco) for IRC connectivity (`irc.client_aio.AioReactor`)
-- `aiohttp` for HTTP client (Overseerr API) and web server (config UI)
+- `aiohttp` for HTTP client (Overseerr/Lidarr APIs) and web server (config UI)
 - `aiosqlite` for async SQLite database
 - `pyyaml` for config loading
 - `bcrypt` for web UI password hashing
@@ -20,6 +20,8 @@ bot/
   plugins/
     base.py     - Plugin ABC, Command, CommandContext dataclasses
     overseerr/  - Overseerr plugin (api.py, formatters.py, plugin.py)
+    lidarr/     - Lidarr plugin (api.py, formatters.py, plugin.py)
+    media_coordinator.py - Routes shared commands to backend plugins
   web/          - Web config UI (auth, routes, server, config_form, templates, static)
 main.py         - Entry point wiring everything together
 tests/          - All tests (pytest)
@@ -28,6 +30,7 @@ config/         - config.example.yaml
 
 ## Key Patterns
 - Plugins implement `Plugin` ABC with `name()` and `register_commands()` methods
+- MediaCoordinator routes shared commands (request/select/status) to backend plugins
 - Commands use `CommandContext` dataclass with async `reply` callback
 - Config uses YAML with `${VAR}` env substitution and `SECTION__KEY` env overrides
 - Auth uses fnmatch hostmask patterns with role hierarchy (admin > user > none)
@@ -44,6 +47,7 @@ python main.py path/to/config.yaml  # Run with custom config path
 
 ## Environment Variables
 - `OVERSEERR_API_KEY` - API key for Overseerr (used in config via `${OVERSEERR_API_KEY}`)
+- `LIDARR_API_KEY` - API key for Lidarr (used in config via `${LIDARR_API_KEY}`)
 - `WEB_PASSWORD` - Set to enable web UI (bcrypt hashed at startup)
 - `IRC__SERVER`, `IRC__PORT`, etc. - Config overrides via `SECTION__KEY` format
 

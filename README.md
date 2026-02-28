@@ -1,11 +1,11 @@
 # Relayarr
 
-An IRC bot for requesting media through Overseerr/Seerr, with a plugin-based architecture for future service integrations. Think [Requestrr](https://github.com/darkalfx/requestrr) but for IRC.
+An IRC bot for requesting media through Overseerr and Lidarr, with a plugin-based architecture for service integrations. Think [Requestrr](https://github.com/darkalfx/requestrr) but for IRC.
 
 ## Features
 
-- **Media Requests** - Search and request movies/TV shows via Overseerr directly from IRC
-- **Rich Formatting** - Search results with TMDB links, synopsis, year, and mIRC color formatting
+- **Media Requests** - Search and request movies/TV shows via Overseerr, music via Lidarr
+- **Rich Formatting** - Search results with TMDB/MusicBrainz links, synopsis, and mIRC color formatting
 - **Plugin Architecture** - Modular design for adding new service integrations
 - **Role-Based Auth** - Admin/user roles via IRC hostmask pattern matching
 - **Web Config UI** - Dark-themed browser interface for managing all bot settings
@@ -21,7 +21,7 @@ An IRC bot for requesting media through Overseerr/Seerr, with a plugin-based arc
    cp config/config.example.yaml bot-data/config.yaml
    ```
 
-2. Edit `bot-data/config.yaml` with your IRC server and Overseerr details.
+2. Edit `bot-data/config.yaml` with your IRC server, Overseerr, and/or Lidarr details.
 
 3. Create a `.env` file:
    ```bash
@@ -51,6 +51,7 @@ python main.py path/to/config.yaml
 |---------|-------------|
 | `!request movie <query>` | Search for a movie |
 | `!request tv <query>` | Search for a TV show |
+| `!request music <artist>` | Search for a music artist |
 | `!select <number>` | Request a title from search results |
 | `!status` | Check your pending requests |
 | `!help` | List all available commands |
@@ -82,9 +83,17 @@ overseerr:
   url: "http://overseerr:5055"
   api_key: "${OVERSEERR_API_KEY}"
 
+lidarr:
+  url: "http://lidarr:8686"
+  api_key: "${LIDARR_API_KEY}"
+  quality_profile_id: 1
+  metadata_profile_id: 1
+  root_folder_path: "/music"
+
 plugins:
   enabled:
     - overseerr
+    # - lidarr
 
 database:
   path: "/data/bot.db"
@@ -104,6 +113,7 @@ web:
 | Variable | Description |
 |----------|-------------|
 | `OVERSEERR_API_KEY` | Overseerr API key (referenced in config via `${OVERSEERR_API_KEY}`) |
+| `LIDARR_API_KEY` | Lidarr API key (referenced in config via `${LIDARR_API_KEY}`) |
 | `WEB_PASSWORD` | Password for the web config UI (required to enable it) |
 
 Config values can also be overridden with env vars using `SECTION__KEY` format (e.g., `IRC__SERVER=irc.example.com`).
@@ -131,7 +141,9 @@ bot/
     bot.py          # IRC connection and event handling
   plugins/
     base.py         # Plugin ABC, Command/CommandContext types
-    overseerr/      # Overseerr integration plugin
+    media_coordinator.py  # Routes shared commands to backends
+    overseerr/      # Overseerr integration (movies/TV)
+    lidarr/         # Lidarr integration (music)
   web/
     server.py       # aiohttp app factory
     routes.py       # Login, config, save, logout handlers
@@ -146,7 +158,7 @@ main.py             # Entry point
 
 ```bash
 source .venv/bin/activate
-python -m pytest tests/ -v    # 114 tests
+python -m pytest tests/ -v    # 169 tests
 ```
 
 ## License

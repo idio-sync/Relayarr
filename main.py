@@ -125,6 +125,18 @@ async def main():
         await romm_plugin.on_load()
         logger.info("RomM plugin loaded")
 
+    if romm_plugin:
+        notif_config = config.get("romm.notifications", {}) or {}
+        if notif_config.get("enabled", False):
+            notif_channel = notif_config.get("channel", "#romm")
+            notif_interval = notif_config.get("interval", 300)
+
+            async def send_to_channel(msg):
+                await bot.send_message(notif_channel, msg)
+
+            romm_plugin.start_notifications(send_to_channel, interval=notif_interval)
+            logger.info(f"RomM notifications enabled for {notif_channel} every {notif_interval}s")
+
     if backends:
         coordinator = MediaCoordinator(
             backends=backends,

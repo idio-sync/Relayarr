@@ -108,6 +108,13 @@ class IRCBot:
         for line in self.dispatcher.help_text():
             await self._send(connection, channel, line)
 
+    async def send_message(self, channel: str, message: str) -> None:
+        """Send a message to a channel. Requires the bot to be connected."""
+        if self._connection is None:
+            logger.warning(f"send_message called before connection established, dropping: {message}")
+            return
+        await self._send(self._connection, channel, message)
+
     async def run(self) -> None:
         await self.connect()
         self._reactor.process_forever()

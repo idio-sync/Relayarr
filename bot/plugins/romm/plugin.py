@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import random
 import time
@@ -354,6 +355,70 @@ class RommPlugin(Plugin):
             await ctx.reply(line)
 
     # ------------------------------------------------------------------
+    # Notification support
+    # ------------------------------------------------------------------
+
+    async def _check_new_roms(self) -> list[dict]:
+        """Check for new ROMs across all platforms. Returns list of {"rom": dict, "platform_name": str}."""
+        try:
+            platforms = await self._api.get_platforms()
+        except RommError:
+            return []
+
+        new_roms = []
+        for platform in platforms:
+            try:
+                roms = await self._api.search_roms(
+                    platform_id=platform["id"], search_term="", limit=50,
+                )
+            except RommError:
+                continue
+            if not roms:
+                continue
+
+            rom_ids = [r["id"] for r in roms]
+            placeholders = ",".join("?" * len(rom_ids))
+            announced = await self._db.fetch_all(
+                f"SELECT rom_id FROM romm_announced WHERE rom_id IN ({placeholders})",
+                tuple(rom_ids),
+            )
+            announced_ids = {row["rom_id"] for row in announced}
+
+            for rom in roms:
+                if rom["id"] not in announced_ids:
+                    new_roms.append({"rom": rom, "platform_name": platform["name"]})
+
+        return new_roms
+
+    async def _announce_roms(self, send_fn, new_roms: list[dict]) -> None:
+        """Announce new ROMs and mark them as announced."""
+        for entry in new_roms:
+            rom = entry["rom"]
+            msg = self._formatter.format_new_rom(rom, entry["platform_name"])
+            await send_fn(msg)
+            await self._db.execute(
+                "INSERT OR IGNORE INTO romm_announced (rom_id) VALUES (?)",
+                (rom["id"],),
+            )
+
+    async def _notification_loop(self, send_fn, interval: int) -> None:
+        """Background loop that checks for and announces new ROMs."""
+        while True:
+            await asyncio.sleep(interval)
+            try:
+                new_roms = await self._check_new_roms()
+                if new_roms:
+                    await self._announce_roms(send_fn, new_roms)
+            except Exception as e:
+                logger.error(f"Notification loop error: {e}")
+
+    def start_notifications(self, send_fn, interval: int = 300) -> None:
+        """Start the notification background task."""
+        self._notification_task = asyncio.create_task(
+            self._notification_loop(send_fn, interval)
+        )
+
+    # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
 
@@ -378,6 +443,8 @@ class RommPlugin(Plugin):
         )
 
     async def on_unload(self) -> None:
+        if hasattr(self, "_notification_task"):
+            self._notification_task.cancel()
         await self._api.close()
         if self._igdb is not None:
             await self._igdb.close()

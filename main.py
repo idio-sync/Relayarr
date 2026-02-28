@@ -1,6 +1,7 @@
 # main.py
 import asyncio
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -10,6 +11,8 @@ from bot.core.database import Database
 from bot.core.auth import AuthManager
 from bot.plugins.overseerr.api import OverseerrClient
 from bot.plugins.overseerr.plugin import OverseerrPlugin
+from bot.web import create_web_app, run_web_server
+from bot.web.auth import hash_password
 
 logging.basicConfig(
     level=logging.INFO,
@@ -69,11 +72,24 @@ async def main():
         await plugin.on_load()
         logger.info("Overseerr plugin loaded")
 
+    # Start web UI
+    web_password = os.environ.get("WEB_PASSWORD")
+    web_runner = None
+    if web_password:
+        password_hash = hash_password(web_password)
+        web_port = config.get("web.port", 9090)
+        app = create_web_app(config_path, password_hash)
+        web_runner = await run_web_server(app, port=web_port)
+    else:
+        logger.warning("WEB_PASSWORD not set, web UI disabled")
+
     # Run bot
     logger.info(f"Connecting to {config['irc']['server']}:{config['irc']['port']}")
     try:
         await bot.run()
     finally:
+        if web_runner:
+            await web_runner.cleanup()
         await db.close()
         logger.info("Shutdown complete")
 

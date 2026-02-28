@@ -3,6 +3,8 @@ services:
     build: .
     container_name: relayarr
     restart: unless-stopped
+    ports:
+      - "9090:9090"
     volumes:
       - ./bot-data:/data
     env_file:

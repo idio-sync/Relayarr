@@ -31,3 +31,6 @@ session:
 
 formatting:
   irc_colors: true
+
+web:
+  port: 9090

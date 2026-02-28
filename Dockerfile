@@ -15,4 +15,6 @@ RUN mkdir -p /data && chown -R botuser:botuser /data /app
 
 USER botuser
 
+EXPOSE 9090
+
 CMD ["python", "main.py"]

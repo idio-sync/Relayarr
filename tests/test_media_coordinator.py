@@ -271,3 +271,91 @@ async def test_expired_session_cleaned(coordinator, make_ctx):
     await coordinator.handle_request(ctx)
 
     assert "olduser" not in coordinator._sessions
+
+
+# --- 18. Select routes to RomM when romm session exists ---
+
+@pytest.mark.asyncio
+async def test_select_routes_to_romm_when_romm_session_exists(mock_overseerr, mock_lidarr, make_ctx):
+    mock_romm = MagicMock()
+    mock_romm.name.return_value = "romm"
+    mock_romm._sessions = {}
+    mock_romm.handle_select = AsyncMock()
+    mock_romm.on_unload = AsyncMock()
+
+    backends = {"movie": mock_overseerr, "tv": mock_overseerr, "music": mock_lidarr}
+    coordinator = MediaCoordinator(backends=backends, session_timeout=300, romm_backend=mock_romm)
+
+    # Put a session in romm (simulating user ran !game)
+    mock_romm._sessions["testuser"] = {"results": [], "timestamp": time.time()}
+
+    ctx, reply = make_ctx(args=["1"])
+    await coordinator.handle_select(ctx)
+
+    mock_romm.handle_select.assert_called_once_with(ctx)
+    reply.assert_not_called()
+
+
+# --- 19. Select no session shows !game hint when romm configured ---
+
+@pytest.mark.asyncio
+async def test_select_no_session_shows_game_hint(mock_overseerr, mock_lidarr, make_ctx):
+    mock_romm = MagicMock()
+    mock_romm.name.return_value = "romm"
+    mock_romm._sessions = {}
+    mock_romm.handle_select = AsyncMock()
+    mock_romm.on_unload = AsyncMock()
+
+    backends = {"movie": mock_overseerr, "tv": mock_overseerr, "music": mock_lidarr}
+    coordinator = MediaCoordinator(backends=backends, session_timeout=300, romm_backend=mock_romm)
+
+    ctx, reply = make_ctx(args=["1"])
+    await coordinator.handle_select(ctx)
+
+    reply.assert_called_once()
+    msg = reply.call_args[0][0]
+    assert "No active search" in msg
+    assert "!game" in msg
+
+
+# --- 20. Select prefers coordinator session over romm ---
+
+@pytest.mark.asyncio
+async def test_select_prefers_coordinator_session_over_romm(mock_overseerr, mock_lidarr, make_ctx):
+    mock_romm = MagicMock()
+    mock_romm.name.return_value = "romm"
+    mock_romm._sessions = {}
+    mock_romm.handle_select = AsyncMock()
+    mock_romm.on_unload = AsyncMock()
+
+    backends = {"movie": mock_overseerr, "tv": mock_overseerr, "music": mock_lidarr}
+    coordinator = MediaCoordinator(backends=backends, session_timeout=300, romm_backend=mock_romm)
+
+    # Both coordinator and romm have sessions for testuser
+    coordinator._sessions["testuser"] = {"backend": "music", "timestamp": time.time()}
+    mock_romm._sessions["testuser"] = {"results": [], "timestamp": time.time()}
+    mock_lidarr._sessions["testuser"] = {"results": [], "timestamp": time.time()}
+
+    ctx, reply = make_ctx(args=["1"])
+    await coordinator.handle_select(ctx)
+
+    # Coordinator session wins — lidarr gets the call, not romm
+    mock_lidarr.handle_select.assert_called_once_with(ctx)
+    mock_romm.handle_select.assert_not_called()
+
+
+# --- 21. on_unload calls romm backend when present ---
+
+@pytest.mark.asyncio
+async def test_on_unload_calls_romm_backend(mock_overseerr, mock_lidarr):
+    mock_romm = MagicMock()
+    mock_romm.name.return_value = "romm"
+    mock_romm._sessions = {}
+    mock_romm.on_unload = AsyncMock()
+
+    backends = {"movie": mock_overseerr, "tv": mock_overseerr, "music": mock_lidarr}
+    coordinator = MediaCoordinator(backends=backends, session_timeout=300, romm_backend=mock_romm)
+
+    await coordinator.on_unload()
+
+    mock_romm.on_unload.assert_called_once()

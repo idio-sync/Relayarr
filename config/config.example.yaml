@@ -26,10 +26,23 @@ lidarr:
   metadata_profile_id: 1
   root_folder_path: "/music"
 
+romm:
+  url: "http://romm:8080"
+  username: "admin"
+  password: "${ROMM_PASSWORD}"
+  domain: "https://romm.example.com"
+  igdb_client_id: "${IGDB_CLIENT_ID}"
+  igdb_client_secret: "${IGDB_CLIENT_SECRET}"
+  notifications:
+    enabled: false
+    channel: "#romm"
+    interval: 300
+
 plugins:
   enabled:
     - overseerr
     # - lidarr
+    # - romm
 
 database:
   path: "/data/bot.db"

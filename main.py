@@ -14,6 +14,9 @@ from bot.plugins.overseerr.plugin import OverseerrPlugin
 from bot.plugins.lidarr.api import LidarrClient
 from bot.plugins.lidarr.plugin import LidarrPlugin
 from bot.plugins.media_coordinator import MediaCoordinator
+from bot.plugins.romm.api import RommClient
+from bot.plugins.romm.plugin import RommPlugin
+from bot.plugins.romm.igdb import IGDBClient
 from bot.web import create_web_app, run_web_server
 from bot.web.auth import hash_password
 
@@ -96,10 +99,37 @@ async def main():
         await lidarr_plugin.on_load()
         logger.info("Lidarr plugin loaded")
 
+    romm_plugin = None
+    if "romm" in enabled:
+        romm_config = config["romm"]
+        romm_api = RommClient(
+            base_url=romm_config["url"],
+            username=romm_config["username"],
+            password=romm_config["password"],
+            domain=romm_config.get("domain", romm_config["url"]),
+        )
+        igdb = None
+        igdb_id = romm_config.get("igdb_client_id")
+        igdb_secret = romm_config.get("igdb_client_secret")
+        if igdb_id and igdb_secret:
+            igdb = IGDBClient(client_id=igdb_id, client_secret=igdb_secret)
+            logger.info("IGDB integration enabled for RomM")
+        romm_plugin = RommPlugin(
+            api=romm_api,
+            db=db,
+            igdb=igdb,
+            irc_colors=config.get("formatting.irc_colors", True),
+            session_timeout=config.get("session.timeout_seconds", 300),
+        )
+        bot.dispatcher.register_plugin(romm_plugin)
+        await romm_plugin.on_load()
+        logger.info("RomM plugin loaded")
+
     if backends:
         coordinator = MediaCoordinator(
             backends=backends,
             session_timeout=config.get("session.timeout_seconds", 300),
+            romm_backend=romm_plugin,
         )
         bot.dispatcher.register_plugin(coordinator)
 

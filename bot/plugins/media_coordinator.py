@@ -10,16 +10,19 @@ logger = logging.getLogger(__name__)
 class MediaCoordinator(Plugin):
     """Routes !request, !select, !status to the appropriate media backend plugin."""
 
-    def __init__(self, backends: dict[str, Plugin], session_timeout: int = 300):
+    def __init__(self, backends: dict[str, Plugin], session_timeout: int = 300,
+                 romm_backend: Plugin | None = None):
         """
         Args:
             backends: Maps media type to plugin instance.
                 e.g. {"movie": overseerr, "tv": overseerr, "music": lidarr}
             session_timeout: Seconds before coordinator session expires.
+            romm_backend: Optional RommPlugin instance for !select routing.
         """
         self._backends = backends
         self._sessions: dict[str, dict[str, Any]] = {}
         self._session_timeout = session_timeout
+        self._romm = romm_backend
 
     def name(self) -> str:
         return "media"
@@ -89,8 +92,12 @@ class MediaCoordinator(Plugin):
         self._clean_expired()
 
         if ctx.sender not in self._sessions:
+            # Check if RomM plugin has a session for this user
+            if self._romm and ctx.sender in self._romm._sessions:
+                await self._romm.handle_select(ctx)
+                return
             types_list = "/".join(sorted(self._backends.keys()))
-            await ctx.reply(f"No active search. Use !request {types_list} <title> first.")
+            await ctx.reply(f"No active search. Use !request {types_list} <title> or !game <platform> <title> first.")
             return
 
         backend_key = self._sessions[ctx.sender]["backend"]
@@ -115,3 +122,5 @@ class MediaCoordinator(Plugin):
             if id(backend) not in seen:
                 seen.add(id(backend))
                 await backend.on_unload()
+        if self._romm:
+            await self._romm.on_unload()

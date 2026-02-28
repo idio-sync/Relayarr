@@ -1,0 +1,33 @@
+# config/config.example.yaml
+irc:
+  server: "irc.example.com"
+  port: 6697
+  ssl: true
+  nickname: "Relayarr"
+  channels:
+    - "#requests"
+  command_prefix: "!"
+
+auth:
+  admins:
+    - "*!*@admin.host.mask"
+  users:
+    - "*!*@*.trusted.network"
+  default_role: "none"
+
+overseerr:
+  url: "http://overseerr:5055"
+  api_key: "${OVERSEERR_API_KEY}"
+
+plugins:
+  enabled:
+    - overseerr
+
+database:
+  path: "/data/bot.db"
+
+session:
+  timeout_seconds: 300
+
+formatting:
+  irc_colors: true

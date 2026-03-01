@@ -86,7 +86,13 @@ class MediaCoordinator(Plugin):
                 args=ctx.args[1:],
                 reply=ctx.reply,
             )
-            await backend.handle_request(delegated_ctx)
+            # Pass content_type for backends that need it (e.g., shelfmark)
+            content_type_map = {"book": "ebook", "audiobook": "audiobook"}
+            content_type = content_type_map.get(media_type)
+            if content_type is not None:
+                await backend.handle_request(delegated_ctx, content_type=content_type)
+            else:
+                await backend.handle_request(delegated_ctx)
 
     async def handle_select(self, ctx: CommandContext) -> None:
         self._clean_expired()

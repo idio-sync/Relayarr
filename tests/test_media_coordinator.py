@@ -359,3 +359,103 @@ async def test_on_unload_calls_romm_backend(mock_overseerr, mock_lidarr):
     await coordinator.on_unload()
 
     mock_romm.on_unload.assert_called_once()
+
+
+@pytest.fixture
+def mock_shelfmark():
+    plugin = MagicMock()
+    plugin.name.return_value = "shelfmark"
+    plugin._sessions = {}
+    plugin.handle_request = AsyncMock()
+    plugin.handle_select = AsyncMock()
+    plugin.handle_status = AsyncMock()
+    plugin.on_unload = AsyncMock()
+    return plugin
+
+
+# --- Shelfmark routing tests ---
+
+@pytest.mark.asyncio
+async def test_request_routes_book_to_shelfmark(mock_overseerr, mock_lidarr, mock_shelfmark, make_ctx):
+    backends = {
+        "movie": mock_overseerr, "tv": mock_overseerr,
+        "music": mock_lidarr,
+        "book": mock_shelfmark, "audiobook": mock_shelfmark,
+    }
+    coordinator = MediaCoordinator(backends=backends, session_timeout=300)
+    ctx, reply = make_ctx(args=["book", "the", "hobbit"])
+    await coordinator.handle_request(ctx)
+    mock_shelfmark.handle_request.assert_called_once()
+    delegated_ctx = mock_shelfmark.handle_request.call_args[0][0]
+    assert delegated_ctx.args == ["the", "hobbit"]
+
+
+@pytest.mark.asyncio
+async def test_request_routes_audiobook_to_shelfmark(mock_overseerr, mock_lidarr, mock_shelfmark, make_ctx):
+    backends = {
+        "movie": mock_overseerr, "tv": mock_overseerr,
+        "music": mock_lidarr,
+        "book": mock_shelfmark, "audiobook": mock_shelfmark,
+    }
+    coordinator = MediaCoordinator(backends=backends, session_timeout=300)
+    ctx, reply = make_ctx(args=["audiobook", "dune"])
+    await coordinator.handle_request(ctx)
+    mock_shelfmark.handle_request.assert_called_once()
+    delegated_ctx = mock_shelfmark.handle_request.call_args[0][0]
+    assert delegated_ctx.args == ["dune"]
+
+
+@pytest.mark.asyncio
+async def test_book_request_passes_ebook_content_type(mock_overseerr, mock_lidarr, mock_shelfmark, make_ctx):
+    backends = {
+        "movie": mock_overseerr, "tv": mock_overseerr,
+        "music": mock_lidarr,
+        "book": mock_shelfmark, "audiobook": mock_shelfmark,
+    }
+    coordinator = MediaCoordinator(backends=backends, session_timeout=300)
+    ctx, reply = make_ctx(args=["book", "the", "hobbit"])
+    await coordinator.handle_request(ctx)
+    call_kwargs = mock_shelfmark.handle_request.call_args[1]
+    assert call_kwargs["content_type"] == "ebook"
+
+
+@pytest.mark.asyncio
+async def test_audiobook_request_passes_audiobook_content_type(mock_overseerr, mock_lidarr, mock_shelfmark, make_ctx):
+    backends = {
+        "movie": mock_overseerr, "tv": mock_overseerr,
+        "music": mock_lidarr,
+        "book": mock_shelfmark, "audiobook": mock_shelfmark,
+    }
+    coordinator = MediaCoordinator(backends=backends, session_timeout=300)
+    ctx, reply = make_ctx(args=["audiobook", "dune"])
+    await coordinator.handle_request(ctx)
+    call_kwargs = mock_shelfmark.handle_request.call_args[1]
+    assert call_kwargs["content_type"] == "audiobook"
+
+
+@pytest.mark.asyncio
+async def test_music_request_does_not_pass_content_type(mock_overseerr, mock_lidarr, mock_shelfmark, make_ctx):
+    backends = {
+        "movie": mock_overseerr, "tv": mock_overseerr,
+        "music": mock_lidarr,
+        "book": mock_shelfmark, "audiobook": mock_shelfmark,
+    }
+    coordinator = MediaCoordinator(backends=backends, session_timeout=300)
+    ctx, reply = make_ctx(args=["music", "radiohead"])
+    await coordinator.handle_request(ctx)
+    call_kwargs = mock_lidarr.handle_request.call_args[1]
+    assert "content_type" not in call_kwargs
+
+
+@pytest.mark.asyncio
+async def test_help_text_includes_book_types(mock_overseerr, mock_lidarr, mock_shelfmark):
+    backends = {
+        "movie": mock_overseerr, "tv": mock_overseerr,
+        "music": mock_lidarr,
+        "book": mock_shelfmark, "audiobook": mock_shelfmark,
+    }
+    coordinator = MediaCoordinator(backends=backends, session_timeout=300)
+    cmds = coordinator.register_commands()
+    request_cmd = next(c for c in cmds if c.name == "request")
+    assert "book" in request_cmd.help_text
+    assert "audiobook" in request_cmd.help_text

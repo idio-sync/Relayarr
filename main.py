@@ -17,6 +17,10 @@ from bot.plugins.media_coordinator import MediaCoordinator
 from bot.plugins.romm.api import RommClient
 from bot.plugins.romm.plugin import RommPlugin
 from bot.plugins.romm.igdb import IGDBClient
+from bot.plugins.plex.plex_client import PlexClient
+from bot.plugins.plex.tautulli_client import TautulliClient
+from bot.plugins.plex.plugin import PlexPlugin
+from bot.plugins.plex.formatters import PlexFormatter
 from bot.web import create_web_app, run_web_server
 from bot.web.auth import hash_password
 
@@ -136,6 +140,31 @@ async def main():
 
             romm_plugin.start_notifications(send_to_channel, interval=notif_interval)
             logger.info(f"RomM notifications enabled for {notif_channel} every {notif_interval}s")
+
+    if "plex" in enabled:
+        plex_config = config["plex"]
+        plex_api = PlexClient(
+            base_url=plex_config["url"],
+            token=plex_config["token"],
+        )
+        tautulli_api = None
+        if config.get("tautulli"):
+            tautulli_config = config["tautulli"]
+            tautulli_api = TautulliClient(
+                base_url=tautulli_config["url"],
+                api_key=tautulli_config["api_key"],
+            )
+        plex_plugin = PlexPlugin(
+            plex_api=plex_api,
+            tautulli_api=tautulli_api,
+            formatter=PlexFormatter(irc_colors=config.get("formatting.irc_colors", True)),
+            announce_channel=plex_config.get("announce_channel"),
+            announce_interval=plex_config.get("announce_interval", 300),
+            send_callback=bot.send_message,
+        )
+        bot.dispatcher.register_plugin(plex_plugin)
+        await plex_plugin.on_load()
+        logger.info("Plex plugin loaded")
 
     if backends:
         coordinator = MediaCoordinator(

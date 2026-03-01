@@ -5,7 +5,7 @@ from typing import Any
 import yaml
 
 MASK = "********"
-SENSITIVE_FIELDS = {"overseerr.api_key", "lidarr.api_key"}
+SENSITIVE_FIELDS = {"overseerr.api_key", "lidarr.api_key", "plex.token", "tautulli.api_key"}
 
 
 def _get_nested(data: dict, dotted_key: str) -> Any:
@@ -58,6 +58,14 @@ def load_config_for_form(config_path: Path) -> dict:
     data["lidarr"].setdefault("quality_profile_id", 1)
     data["lidarr"].setdefault("metadata_profile_id", 1)
     data["lidarr"].setdefault("root_folder_path", "/music")
+    data.setdefault("plex", {})
+    data["plex"].setdefault("url", "")
+    data["plex"].setdefault("token", "")
+    data["plex"].setdefault("announce_channel", "")
+    data["plex"].setdefault("announce_interval", 300)
+    data.setdefault("tautulli", {})
+    data["tautulli"].setdefault("url", "")
+    data["tautulli"].setdefault("api_key", "")
     data.setdefault("plugins", {})
     data["plugins"].setdefault("enabled", [])
     data.setdefault("database", {})
@@ -141,6 +149,11 @@ def validate_config(form: dict) -> list[str]:
         if not lidarr_url:
             errors.append("Lidarr URL is required when the plugin is enabled.")
 
+    if "plex" in enabled_plugins:
+        plex_url = form.get("plex.url", "").strip()
+        if not plex_url:
+            errors.append("Plex URL is required when the plugin is enabled.")
+
     # Session validation
     try:
         timeout = int(form.get("session.timeout_seconds", 0))
@@ -201,6 +214,28 @@ def build_config_dict(form: dict, current: dict) -> dict:
         "metadata_profile_id": int(form.get("lidarr.metadata_profile_id", 1)),
         "root_folder_path": form.get("lidarr.root_folder_path", "/music").strip(),
     }
+
+    # Plex section
+    plex_token = form.get("plex.token", "")
+    if plex_token == MASK:
+        plex_token = _get_nested(current, "plex.token") or ""
+    config["plex"] = {
+        "url": form.get("plex.url", "").strip(),
+        "token": plex_token,
+        "announce_channel": form.get("plex.announce_channel", "").strip(),
+        "announce_interval": int(form.get("plex.announce_interval", 300)),
+    }
+
+    # Tautulli section (optional)
+    tautulli_key = form.get("tautulli.api_key", "")
+    if tautulli_key == MASK:
+        tautulli_key = _get_nested(current, "tautulli.api_key") or ""
+    tautulli_url = form.get("tautulli.url", "").strip()
+    if tautulli_url:
+        config["tautulli"] = {
+            "url": tautulli_url,
+            "api_key": tautulli_key,
+        }
 
     # Plugins section
     if hasattr(form, "getall"):

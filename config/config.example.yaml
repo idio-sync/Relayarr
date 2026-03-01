@@ -26,6 +26,16 @@ lidarr:
   metadata_profile_id: 1
   root_folder_path: "/music"
 
+plex:
+  url: "http://plex:32400"
+  token: "${PLEX_TOKEN}"
+  announce_channel: "#media"
+  announce_interval: 300
+
+# tautulli:
+#   url: "http://tautulli:8181"
+#   api_key: "${TAUTULLI_API_KEY}"
+
 romm:
   url: "http://romm:8080"
   username: "admin"

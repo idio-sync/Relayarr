@@ -5,7 +5,7 @@ from typing import Any
 import yaml
 
 MASK = "********"
-SENSITIVE_FIELDS = {"overseerr.api_key", "lidarr.api_key", "plex.token", "tautulli.api_key"}
+SENSITIVE_FIELDS = {"overseerr.api_key", "lidarr.api_key", "plex.token", "tautulli.api_key", "shelfmark.password"}
 
 
 def _get_nested(data: dict, dotted_key: str) -> Any:
@@ -66,6 +66,10 @@ def load_config_for_form(config_path: Path) -> dict:
     data.setdefault("tautulli", {})
     data["tautulli"].setdefault("url", "")
     data["tautulli"].setdefault("api_key", "")
+    data.setdefault("shelfmark", {})
+    data["shelfmark"].setdefault("url", "")
+    data["shelfmark"].setdefault("username", "")
+    data["shelfmark"].setdefault("password", "")
     data.setdefault("plugins", {})
     data["plugins"].setdefault("enabled", [])
     data.setdefault("database", {})
@@ -154,6 +158,14 @@ def validate_config(form: dict) -> list[str]:
         if not plex_url:
             errors.append("Plex URL is required when the plugin is enabled.")
 
+    if "shelfmark" in enabled_plugins:
+        shelfmark_url = form.get("shelfmark.url", "").strip()
+        if not shelfmark_url:
+            errors.append("Shelfmark URL is required when the plugin is enabled.")
+        shelfmark_username = form.get("shelfmark.username", "").strip()
+        if not shelfmark_username:
+            errors.append("Shelfmark username is required when the plugin is enabled.")
+
     # Session validation
     try:
         timeout = int(form.get("session.timeout_seconds", 0))
@@ -236,6 +248,16 @@ def build_config_dict(form: dict, current: dict) -> dict:
             "url": tautulli_url,
             "api_key": tautulli_key,
         }
+
+    # Shelfmark section
+    shelfmark_password = form.get("shelfmark.password", "")
+    if shelfmark_password == MASK:
+        shelfmark_password = _get_nested(current, "shelfmark.password") or ""
+    config["shelfmark"] = {
+        "url": form.get("shelfmark.url", "").strip(),
+        "username": form.get("shelfmark.username", "").strip(),
+        "password": shelfmark_password,
+    }
 
     # Plugins section
     if hasattr(form, "getall"):

@@ -48,11 +48,17 @@ romm:
     channel: "#romm"
     interval: 300
 
+shelfmark:
+  url: "http://shelfmark:8080"
+  username: "bot_user"
+  password: "${SHELFMARK_PASSWORD}"
+
 plugins:
   enabled:
     - overseerr
     # - lidarr
     # - romm
+    # - shelfmark
 
 database:
   path: "/data/bot.db"

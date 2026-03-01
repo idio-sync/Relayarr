@@ -176,6 +176,28 @@
                         <input type="text" id="tautulli-api-key" name="tautulli.api_key" value="{{ config.tautulli.api_key }}" placeholder="Enter API key">
                     </div>
                 </div>
+
+                <div class="form-group form-checkbox">
+                    <label>
+                        <input type="checkbox" name="plugins.enabled" value="shelfmark" {% if 'shelfmark' in config.plugins.enabled %}checked{% endif %}>
+                        Shelfmark (Books)
+                    </label>
+                </div>
+                <div class="plugin-config">
+                    <h4>Shelfmark Settings</h4>
+                    <div class="form-group">
+                        <label for="shelfmark-url">Shelfmark URL</label>
+                        <input type="text" id="shelfmark-url" name="shelfmark.url" value="{{ config.shelfmark.url }}" placeholder="http://shelfmark:8080">
+                    </div>
+                    <div class="form-group">
+                        <label for="shelfmark-username">Username</label>
+                        <input type="text" id="shelfmark-username" name="shelfmark.username" value="{{ config.shelfmark.username }}" placeholder="bot_user">
+                    </div>
+                    <div class="form-group">
+                        <label for="shelfmark-password">Password</label>
+                        <input type="password" id="shelfmark-password" name="shelfmark.password" value="{{ config.shelfmark.password }}" placeholder="Enter password">
+                    </div>
+                </div>
             </div>
 
             <div class="tab-panel" id="panel-advanced">

@@ -21,6 +21,8 @@ from bot.plugins.plex.plex_client import PlexClient
 from bot.plugins.plex.tautulli_client import TautulliClient
 from bot.plugins.plex.plugin import PlexPlugin
 from bot.plugins.plex.formatters import PlexFormatter
+from bot.plugins.shelfmark.api import ShelfmarkClient
+from bot.plugins.shelfmark.plugin import ShelfmarkPlugin
 from bot.web import create_web_app, run_web_server
 from bot.web.auth import hash_password
 
@@ -165,6 +167,24 @@ async def main():
         bot.dispatcher.register_plugin(plex_plugin)
         await plex_plugin.on_load()
         logger.info("Plex plugin loaded")
+
+    if "shelfmark" in enabled:
+        shelfmark_config = config["shelfmark"]
+        shelfmark_api = ShelfmarkClient(
+            base_url=shelfmark_config["url"],
+            username=shelfmark_config["username"],
+            password=shelfmark_config["password"],
+        )
+        shelfmark_plugin = ShelfmarkPlugin(
+            api=shelfmark_api,
+            db=db,
+            irc_colors=config.get("formatting.irc_colors", True),
+            session_timeout=config.get("session.timeout_seconds", 300),
+        )
+        backends["book"] = shelfmark_plugin
+        backends["audiobook"] = shelfmark_plugin
+        await shelfmark_plugin.on_load()
+        logger.info("Shelfmark plugin loaded")
 
     if backends:
         coordinator = MediaCoordinator(

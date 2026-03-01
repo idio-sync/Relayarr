@@ -1,11 +1,13 @@
 # Relayarr
 
-An IRC bot for requesting media through Overseerr and Lidarr, with a plugin-based architecture for service integrations. Think [Requestrr](https://github.com/darkalfx/requestrr) but for IRC.
+An IRC bot for requesting media through Overseerr, Lidarr, and RomM, with a plugin-based architecture for service integrations. Think [Requestrr](https://github.com/darkalfx/requestrr) but for IRC.
 
 ## Features
 
 - **Media Requests** - Search and request movies/TV shows via Overseerr, music via Lidarr
-- **Rich Formatting** - Search results with TMDB/MusicBrainz links, synopsis, and mIRC color formatting
+- **ROM Management** - Browse, search, and request ROMs via [RomM](https://github.com/rommapp/romm) with optional IGDB metadata enrichment
+- **Rich Formatting** - Search results with TMDB/MusicBrainz/IGDB links, synopsis, and mIRC color formatting
+- **Notifications** - Recently-added ROM announcements to configured IRC channels
 - **Plugin Architecture** - Modular design for adding new service integrations
 - **Role-Based Auth** - Admin/user roles via IRC hostmask pattern matching
 - **Web Config UI** - Dark-themed browser interface for managing all bot settings
@@ -21,7 +23,7 @@ An IRC bot for requesting media through Overseerr and Lidarr, with a plugin-base
    cp config/config.example.yaml bot-data/config.yaml
    ```
 
-2. Edit `bot-data/config.yaml` with your IRC server, Overseerr, and/or Lidarr details.
+2. Edit `bot-data/config.yaml` with your IRC server, Overseerr, Lidarr, and/or RomM details.
 
 3. Create a `.env` file:
    ```bash
@@ -47,13 +49,32 @@ python main.py path/to/config.yaml
 
 ## IRC Commands
 
+### Media Requests
+
 | Command | Description |
 |---------|-------------|
-| `!request movie <query>` | Search for a movie |
-| `!request tv <query>` | Search for a TV show |
+| `!request movie <title>` | Search for a movie |
+| `!request tv <title>` | Search for a TV show |
 | `!request music <artist>` | Search for a music artist |
-| `!select <number>` | Request a title from search results |
+| `!select <number>` | Select from search results |
 | `!status` | Check your pending requests |
+
+### ROM Management
+
+| Command | Description |
+|---------|-------------|
+| `!game <platform> <title>` | Search ROMs (falls back to IGDB for requests) |
+| `!select <number>` | Select from ROM or IGDB results |
+| `!platforms` | List available ROM platforms |
+| `!gamestats` | Show collection statistics |
+| `!random [platform]` | Get a random ROM |
+| `!firmware <platform>` | List firmware files for a platform |
+| `!myrequests` | View your ROM request history |
+
+### General
+
+| Command | Description |
+|---------|-------------|
 | `!help` | List all available commands |
 
 The command prefix (default `!`) is configurable.
@@ -90,10 +111,23 @@ lidarr:
   metadata_profile_id: 1
   root_folder_path: "/music"
 
+romm:
+  url: "http://romm:8080"
+  username: "admin"
+  password: "${ROMM_PASSWORD}"
+  domain: "https://romm.example.com"
+  igdb_client_id: "${IGDB_CLIENT_ID}"
+  igdb_client_secret: "${IGDB_CLIENT_SECRET}"
+  notifications:
+    enabled: false
+    channel: "#romm"
+    interval: 300
+
 plugins:
   enabled:
     - overseerr
     # - lidarr
+    # - romm
 
 database:
   path: "/data/bot.db"
@@ -114,6 +148,9 @@ web:
 |----------|-------------|
 | `OVERSEERR_API_KEY` | Overseerr API key (referenced in config via `${OVERSEERR_API_KEY}`) |
 | `LIDARR_API_KEY` | Lidarr API key (referenced in config via `${LIDARR_API_KEY}`) |
+| `ROMM_PASSWORD` | RomM password (referenced in config via `${ROMM_PASSWORD}`) |
+| `IGDB_CLIENT_ID` | Twitch/IGDB client ID for game metadata enrichment (optional) |
+| `IGDB_CLIENT_SECRET` | Twitch/IGDB client secret (optional) |
 | `WEB_PASSWORD` | Password for the web config UI (required to enable it) |
 
 Config values can also be overridden with env vars using `SECTION__KEY` format (e.g., `IRC__SERVER=irc.example.com`).
@@ -144,6 +181,7 @@ bot/
     media_coordinator.py  # Routes shared commands to backends
     overseerr/      # Overseerr integration (movies/TV)
     lidarr/         # Lidarr integration (music)
+    romm/           # RomM integration (ROMs/retro games)
   web/
     server.py       # aiohttp app factory
     routes.py       # Login, config, save, logout handlers
@@ -158,7 +196,7 @@ main.py             # Entry point
 
 ```bash
 source .venv/bin/activate
-python -m pytest tests/ -v    # 169 tests
+python -m pytest tests/ -v    # 364 tests
 ```
 
 ## License

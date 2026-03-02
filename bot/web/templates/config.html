@@ -3,42 +3,62 @@
 {% block title %}Configuration - Relayarr{% endblock %}
 
 {% block header_right %}
-<a href="/logout" class="btn btn-small">Logout</a>
+<a href="/logout" class="btn btn-ghost">Logout</a>
 {% endblock %}
 
 {% block content %}
-<div class="config-container">
+<div class="config-page">
     {% if success %}
-    <div class="alert alert-success">Configuration saved. Restart the bot to apply changes.</div>
+    <div class="alert alert-success">
+        <span class="alert-icon">&#10003;</span>
+        Configuration saved. Restart the bot to apply changes.
+    </div>
     {% endif %}
     {% if errors %}
     <div class="alert alert-error">
-        <ul>
-        {% for error in errors %}
-            <li>{{ error }}</li>
-        {% endfor %}
-        </ul>
+        <span class="alert-icon">!</span>
+        <div>
+            <ul>
+            {% for error in errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+            </ul>
+        </div>
     </div>
     {% endif %}
 
     <form method="post" action="/save">
-        <!-- CSS-only tabs -->
         <div class="tabs">
+            <!-- Hidden radio inputs (grouped first for ~ sibling selector) -->
             <input type="radio" name="tab" id="tab-irc" checked>
-            <label for="tab-irc">IRC</label>
-
             <input type="radio" name="tab" id="tab-auth">
-            <label for="tab-auth">Auth</label>
-
             <input type="radio" name="tab" id="tab-plugins">
-            <label for="tab-plugins">Plugins</label>
-
             <input type="radio" name="tab" id="tab-advanced">
-            <label for="tab-advanced">Advanced</label>
 
-            <!-- Tab panels -->
+            <!-- Sidebar labels -->
+            <label for="tab-irc">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                IRC
+            </label>
+            <label for="tab-auth">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Auth
+            </label>
+            <label for="tab-plugins">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                Plugins
+            </label>
+            <label for="tab-advanced">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                Advanced
+            </label>
+
+            <!-- IRC Panel -->
             <div class="tab-panel" id="panel-irc">
-                <h3>IRC Server</h3>
+                <div class="panel-header">
+                    <h3>IRC Server</h3>
+                    <p class="panel-desc">Connection and identity settings for the IRC network.</p>
+                </div>
                 <div class="form-group">
                     <label for="irc-server">Server</label>
                     <input type="text" id="irc-server" name="irc.server" value="{{ config.irc.server }}" placeholder="irc.example.com">
@@ -48,10 +68,11 @@
                         <label for="irc-port">Port</label>
                         <input type="number" id="irc-port" name="irc.port" value="{{ config.irc.port }}">
                     </div>
-                    <div class="form-group form-checkbox">
-                        <label>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <label class="check-field">
                             <input type="checkbox" name="irc.ssl" {% if config.irc.ssl %}checked{% endif %}>
-                            SSL/TLS
+                            <span>SSL/TLS</span>
                         </label>
                     </div>
                 </div>
@@ -60,7 +81,7 @@
                     <input type="text" id="irc-nickname" name="irc.nickname" value="{{ config.irc.nickname }}" maxlength="16" placeholder="Relayarr">
                 </div>
                 <div class="form-group">
-                    <label for="irc-channels">Channels (one per line)</label>
+                    <label for="irc-channels">Channels</label>
                     <textarea id="irc-channels" name="irc.channels" rows="3" placeholder="#channel1&#10;#channel2">{{ config.irc.channels | join('\n') }}</textarea>
                 </div>
                 <div class="form-group">
@@ -69,14 +90,18 @@
                 </div>
             </div>
 
+            <!-- Auth Panel -->
             <div class="tab-panel" id="panel-auth">
-                <h3>Authentication</h3>
+                <div class="panel-header">
+                    <h3>Authentication</h3>
+                    <p class="panel-desc">Role-based access control via IRC hostmask patterns.</p>
+                </div>
                 <div class="form-group">
-                    <label for="auth-admins">Admin Hostmasks (one per line)</label>
+                    <label for="auth-admins">Admin Hostmasks</label>
                     <textarea id="auth-admins" name="auth.admins" rows="3" placeholder="*!*@admin.host">{{ config.auth.admins | join('\n') }}</textarea>
                 </div>
                 <div class="form-group">
-                    <label for="auth-users">User Hostmasks (one per line)</label>
+                    <label for="auth-users">User Hostmasks</label>
                     <textarea id="auth-users" name="auth.users" rows="3" placeholder="*!*@*.users.host">{{ config.auth.users | join('\n') }}</textarea>
                 </div>
                 <div class="form-group">
@@ -89,119 +114,191 @@
                 </div>
             </div>
 
+            <!-- Plugins Panel -->
             <div class="tab-panel" id="panel-plugins">
-                <h3>Plugins</h3>
-                <div class="form-group form-checkbox">
-                    <label>
+                <div class="panel-header">
+                    <h3>Plugins</h3>
+                    <p class="panel-desc">Enable services and configure their connection details.</p>
+                </div>
+
+                <!-- Overseerr -->
+                <div class="plugin-section">
+                    <label class="toggle-field">
                         <input type="checkbox" name="plugins.enabled" value="overseerr" {% if 'overseerr' in config.plugins.enabled %}checked{% endif %}>
-                        Overseerr
+                        <span>Overseerr</span>
                     </label>
-                </div>
-                <div class="plugin-config">
-                    <h4>Overseerr Settings</h4>
-                    <div class="form-group">
-                        <label for="overseerr-url">Overseerr URL</label>
-                        <input type="text" id="overseerr-url" name="overseerr.url" value="{{ config.overseerr.url }}" placeholder="http://overseerr:5055">
-                    </div>
-                    <div class="form-group">
-                        <label for="overseerr-api-key">API Key</label>
-                        <input type="text" id="overseerr-api-key" name="overseerr.api_key" value="{{ config.overseerr.api_key }}" placeholder="Enter API key">
+                    <div class="plugin-config">
+                        <h4>Connection</h4>
+                        <div class="form-group">
+                            <label for="overseerr-url">URL</label>
+                            <input type="text" id="overseerr-url" name="overseerr.url" value="{{ config.overseerr.url }}" placeholder="http://overseerr:5055">
+                        </div>
+                        <div class="form-group">
+                            <label for="overseerr-api-key">API Key</label>
+                            <input type="text" id="overseerr-api-key" name="overseerr.api_key" value="{{ config.overseerr.api_key }}" placeholder="Enter API key">
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group form-checkbox">
-                    <label>
+                <!-- Lidarr -->
+                <div class="plugin-section">
+                    <label class="toggle-field">
                         <input type="checkbox" name="plugins.enabled" value="lidarr" {% if 'lidarr' in config.plugins.enabled %}checked{% endif %}>
-                        Lidarr (Music)
+                        <span>Lidarr</span>
                     </label>
-                </div>
-                <div class="plugin-config">
-                    <h4>Lidarr Settings</h4>
-                    <div class="form-group">
-                        <label for="lidarr-url">Lidarr URL</label>
-                        <input type="text" id="lidarr-url" name="lidarr.url" value="{{ config.lidarr.url }}" placeholder="http://lidarr:8686">
-                    </div>
-                    <div class="form-group">
-                        <label for="lidarr-api-key">API Key</label>
-                        <input type="text" id="lidarr-api-key" name="lidarr.api_key" value="{{ config.lidarr.api_key }}" placeholder="Enter API key">
-                    </div>
-                    <div class="form-row">
+                    <div class="plugin-config">
+                        <h4>Connection</h4>
                         <div class="form-group">
-                            <label for="lidarr-quality">Quality Profile ID</label>
-                            <input type="number" id="lidarr-quality" name="lidarr.quality_profile_id" value="{{ config.lidarr.quality_profile_id }}" min="1">
+                            <label for="lidarr-url">URL</label>
+                            <input type="text" id="lidarr-url" name="lidarr.url" value="{{ config.lidarr.url }}" placeholder="http://lidarr:8686">
                         </div>
                         <div class="form-group">
-                            <label for="lidarr-metadata">Metadata Profile ID</label>
-                            <input type="number" id="lidarr-metadata" name="lidarr.metadata_profile_id" value="{{ config.lidarr.metadata_profile_id }}" min="1">
+                            <label for="lidarr-api-key">API Key</label>
+                            <input type="text" id="lidarr-api-key" name="lidarr.api_key" value="{{ config.lidarr.api_key }}" placeholder="Enter API key">
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="lidarr-root">Root Folder Path</label>
-                        <input type="text" id="lidarr-root" name="lidarr.root_folder_path" value="{{ config.lidarr.root_folder_path }}" placeholder="/music">
+                        <h4>Library</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="lidarr-quality">Quality Profile ID</label>
+                                <input type="number" id="lidarr-quality" name="lidarr.quality_profile_id" value="{{ config.lidarr.quality_profile_id }}" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="lidarr-metadata">Metadata Profile ID</label>
+                                <input type="number" id="lidarr-metadata" name="lidarr.metadata_profile_id" value="{{ config.lidarr.metadata_profile_id }}" min="1">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="lidarr-root">Root Folder Path</label>
+                            <input type="text" id="lidarr-root" name="lidarr.root_folder_path" value="{{ config.lidarr.root_folder_path }}" placeholder="/music">
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group form-checkbox">
-                    <label>
+                <!-- Plex -->
+                <div class="plugin-section">
+                    <label class="toggle-field">
                         <input type="checkbox" name="plugins.enabled" value="plex" {% if 'plex' in config.plugins.enabled %}checked{% endif %}>
-                        Plex
+                        <span>Plex</span>
                     </label>
+                    <div class="plugin-config">
+                        <h4>Connection</h4>
+                        <div class="form-group">
+                            <label for="plex-url">URL</label>
+                            <input type="text" id="plex-url" name="plex.url" value="{{ config.plex.url }}" placeholder="http://plex:32400">
+                        </div>
+                        <div class="form-group">
+                            <label for="plex-token">Token</label>
+                            <input type="text" id="plex-token" name="plex.token" value="{{ config.plex.token }}" placeholder="Enter Plex token">
+                        </div>
+                        <h4>Announcements</h4>
+                        <div class="form-group">
+                            <label for="plex-announce-channel">Channel</label>
+                            <input type="text" id="plex-announce-channel" name="plex.announce_channel" value="{{ config.plex.announce_channel }}" placeholder="#media (leave empty to disable)">
+                        </div>
+                        <div class="form-group">
+                            <label for="plex-announce-interval">Interval (seconds)</label>
+                            <input type="number" id="plex-announce-interval" name="plex.announce_interval" value="{{ config.plex.announce_interval }}" min="60">
+                        </div>
+                        <h4>Tautulli (optional)</h4>
+                        <div class="form-group">
+                            <label for="tautulli-url">URL</label>
+                            <input type="text" id="tautulli-url" name="tautulli.url" value="{{ config.tautulli.url }}" placeholder="http://tautulli:8181">
+                        </div>
+                        <div class="form-group">
+                            <label for="tautulli-api-key">API Key</label>
+                            <input type="text" id="tautulli-api-key" name="tautulli.api_key" value="{{ config.tautulli.api_key }}" placeholder="Enter API key">
+                        </div>
+                    </div>
                 </div>
-                <div class="plugin-config">
-                    <h4>Plex Settings</h4>
-                    <div class="form-group">
-                        <label for="plex-url">Plex URL</label>
-                        <input type="text" id="plex-url" name="plex.url" value="{{ config.plex.url }}" placeholder="http://plex:32400">
-                    </div>
-                    <div class="form-group">
-                        <label for="plex-token">Plex Token</label>
-                        <input type="text" id="plex-token" name="plex.token" value="{{ config.plex.token }}" placeholder="Enter Plex token">
-                    </div>
-                    <div class="form-group">
-                        <label for="plex-announce-channel">Announce Channel (leave empty to disable)</label>
-                        <input type="text" id="plex-announce-channel" name="plex.announce_channel" value="{{ config.plex.announce_channel }}" placeholder="#media">
-                    </div>
-                    <div class="form-group">
-                        <label for="plex-announce-interval">Announce Interval (seconds)</label>
-                        <input type="number" id="plex-announce-interval" name="plex.announce_interval" value="{{ config.plex.announce_interval }}" min="60">
-                    </div>
 
-                    <h4>Tautulli (Optional)</h4>
-                    <div class="form-group">
-                        <label for="tautulli-url">Tautulli URL</label>
-                        <input type="text" id="tautulli-url" name="tautulli.url" value="{{ config.tautulli.url }}" placeholder="http://tautulli:8181">
-                    </div>
-                    <div class="form-group">
-                        <label for="tautulli-api-key">Tautulli API Key</label>
-                        <input type="text" id="tautulli-api-key" name="tautulli.api_key" value="{{ config.tautulli.api_key }}" placeholder="Enter API key">
-                    </div>
-                </div>
-
-                <div class="form-group form-checkbox">
-                    <label>
+                <!-- Shelfmark -->
+                <div class="plugin-section">
+                    <label class="toggle-field">
                         <input type="checkbox" name="plugins.enabled" value="shelfmark" {% if 'shelfmark' in config.plugins.enabled %}checked{% endif %}>
-                        Shelfmark (Books)
+                        <span>Shelfmark</span>
                     </label>
+                    <div class="plugin-config">
+                        <h4>Connection</h4>
+                        <div class="form-group">
+                            <label for="shelfmark-url">URL</label>
+                            <input type="text" id="shelfmark-url" name="shelfmark.url" value="{{ config.shelfmark.url }}" placeholder="http://shelfmark:8080">
+                        </div>
+                        <div class="form-group">
+                            <label for="shelfmark-username">Username</label>
+                            <input type="text" id="shelfmark-username" name="shelfmark.username" value="{{ config.shelfmark.username }}" placeholder="bot_user">
+                        </div>
+                        <div class="form-group">
+                            <label for="shelfmark-password">Password</label>
+                            <input type="password" id="shelfmark-password" name="shelfmark.password" value="{{ config.shelfmark.password }}" placeholder="Enter password">
+                        </div>
+                    </div>
                 </div>
-                <div class="plugin-config">
-                    <h4>Shelfmark Settings</h4>
-                    <div class="form-group">
-                        <label for="shelfmark-url">Shelfmark URL</label>
-                        <input type="text" id="shelfmark-url" name="shelfmark.url" value="{{ config.shelfmark.url }}" placeholder="http://shelfmark:8080">
-                    </div>
-                    <div class="form-group">
-                        <label for="shelfmark-username">Username</label>
-                        <input type="text" id="shelfmark-username" name="shelfmark.username" value="{{ config.shelfmark.username }}" placeholder="bot_user">
-                    </div>
-                    <div class="form-group">
-                        <label for="shelfmark-password">Password</label>
-                        <input type="password" id="shelfmark-password" name="shelfmark.password" value="{{ config.shelfmark.password }}" placeholder="Enter password">
+
+                <!-- RomM -->
+                <div class="plugin-section">
+                    <label class="toggle-field">
+                        <input type="checkbox" name="plugins.enabled" value="romm" {% if 'romm' in config.plugins.enabled %}checked{% endif %}>
+                        <span>RomM</span>
+                    </label>
+                    <div class="plugin-config">
+                        <h4>Connection</h4>
+                        <div class="form-group">
+                            <label for="romm-url">URL</label>
+                            <input type="text" id="romm-url" name="romm.url" value="{{ config.romm.url }}" placeholder="http://romm:8080">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="romm-username">Username</label>
+                                <input type="text" id="romm-username" name="romm.username" value="{{ config.romm.username }}" placeholder="admin">
+                            </div>
+                            <div class="form-group">
+                                <label for="romm-password">Password</label>
+                                <input type="password" id="romm-password" name="romm.password" value="{{ config.romm.password }}" placeholder="Enter password">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="romm-domain">Public Domain</label>
+                            <input type="text" id="romm-domain" name="romm.domain" value="{{ config.romm.domain }}" placeholder="https://romm.example.com">
+                        </div>
+                        <h4>IGDB Metadata (optional)</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="romm-igdb-id">Client ID</label>
+                                <input type="text" id="romm-igdb-id" name="romm.igdb_client_id" value="{{ config.romm.igdb_client_id }}" placeholder="Twitch/IGDB client ID">
+                            </div>
+                            <div class="form-group">
+                                <label for="romm-igdb-secret">Client Secret</label>
+                                <input type="text" id="romm-igdb-secret" name="romm.igdb_client_secret" value="{{ config.romm.igdb_client_secret }}" placeholder="Twitch/IGDB client secret">
+                            </div>
+                        </div>
+                        <h4>Notifications</h4>
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <label class="check-field">
+                                <input type="checkbox" name="romm.notifications.enabled" {% if config.romm.notifications.enabled %}checked{% endif %}>
+                                <span>Enable ROM announcements</span>
+                            </label>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="romm-notify-channel">Channel</label>
+                                <input type="text" id="romm-notify-channel" name="romm.notifications.channel" value="{{ config.romm.notifications.channel }}" placeholder="#romm">
+                            </div>
+                            <div class="form-group">
+                                <label for="romm-notify-interval">Interval (seconds)</label>
+                                <input type="number" id="romm-notify-interval" name="romm.notifications.interval" value="{{ config.romm.notifications.interval }}" min="60">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Advanced Panel -->
             <div class="tab-panel" id="panel-advanced">
-                <h3>Advanced</h3>
+                <div class="panel-header">
+                    <h3>Advanced</h3>
+                    <p class="panel-desc">Database, session, and display settings.</p>
+                </div>
                 <div class="form-group">
                     <label for="db-path">Database Path</label>
                     <input type="text" id="db-path" name="database.path" value="{{ config.database.path }}">
@@ -210,10 +307,11 @@
                     <label for="session-timeout">Session Timeout (seconds)</label>
                     <input type="number" id="session-timeout" name="session.timeout_seconds" value="{{ config.session.timeout_seconds }}" min="30">
                 </div>
-                <div class="form-group form-checkbox">
-                    <label>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <label class="check-field">
                         <input type="checkbox" name="formatting.irc_colors" {% if config.formatting.irc_colors %}checked{% endif %}>
-                        Enable IRC Colors
+                        <span>Enable IRC Colors</span>
                     </label>
                 </div>
                 <div class="form-group">

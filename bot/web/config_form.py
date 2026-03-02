@@ -5,7 +5,10 @@ from typing import Any
 import yaml
 
 MASK = "********"
-SENSITIVE_FIELDS = {"overseerr.api_key", "lidarr.api_key", "plex.token", "tautulli.api_key", "shelfmark.password"}
+SENSITIVE_FIELDS = {
+    "overseerr.api_key", "lidarr.api_key", "plex.token", "tautulli.api_key",
+    "shelfmark.password", "romm.password", "romm.igdb_client_id", "romm.igdb_client_secret",
+}
 
 
 def _get_nested(data: dict, dotted_key: str) -> Any:
@@ -70,6 +73,17 @@ def load_config_for_form(config_path: Path) -> dict:
     data["shelfmark"].setdefault("url", "")
     data["shelfmark"].setdefault("username", "")
     data["shelfmark"].setdefault("password", "")
+    data.setdefault("romm", {})
+    data["romm"].setdefault("url", "")
+    data["romm"].setdefault("username", "")
+    data["romm"].setdefault("password", "")
+    data["romm"].setdefault("domain", "")
+    data["romm"].setdefault("igdb_client_id", "")
+    data["romm"].setdefault("igdb_client_secret", "")
+    data["romm"].setdefault("notifications", {})
+    data["romm"]["notifications"].setdefault("enabled", False)
+    data["romm"]["notifications"].setdefault("channel", "")
+    data["romm"]["notifications"].setdefault("interval", 300)
     data.setdefault("plugins", {})
     data["plugins"].setdefault("enabled", [])
     data.setdefault("database", {})
@@ -166,6 +180,11 @@ def validate_config(form: dict) -> list[str]:
         if not shelfmark_username:
             errors.append("Shelfmark username is required when the plugin is enabled.")
 
+    if "romm" in enabled_plugins:
+        romm_url = form.get("romm.url", "").strip()
+        if not romm_url:
+            errors.append("RomM URL is required when the plugin is enabled.")
+
     # Session validation
     try:
         timeout = int(form.get("session.timeout_seconds", 0))
@@ -257,6 +276,30 @@ def build_config_dict(form: dict, current: dict) -> dict:
         "url": form.get("shelfmark.url", "").strip(),
         "username": form.get("shelfmark.username", "").strip(),
         "password": shelfmark_password,
+    }
+
+    # RomM section
+    romm_password = form.get("romm.password", "")
+    if romm_password == MASK:
+        romm_password = _get_nested(current, "romm.password") or ""
+    romm_igdb_id = form.get("romm.igdb_client_id", "")
+    if romm_igdb_id == MASK:
+        romm_igdb_id = _get_nested(current, "romm.igdb_client_id") or ""
+    romm_igdb_secret = form.get("romm.igdb_client_secret", "")
+    if romm_igdb_secret == MASK:
+        romm_igdb_secret = _get_nested(current, "romm.igdb_client_secret") or ""
+    config["romm"] = {
+        "url": form.get("romm.url", "").strip(),
+        "username": form.get("romm.username", "").strip(),
+        "password": romm_password,
+        "domain": form.get("romm.domain", "").strip(),
+        "igdb_client_id": romm_igdb_id,
+        "igdb_client_secret": romm_igdb_secret,
+        "notifications": {
+            "enabled": "romm.notifications.enabled" in form,
+            "channel": form.get("romm.notifications.channel", "").strip(),
+            "interval": int(form.get("romm.notifications.interval", 300)),
+        },
     }
 
     # Plugins section

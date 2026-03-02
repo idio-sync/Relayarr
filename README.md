@@ -1,12 +1,13 @@
 # Relayarr
 
-An IRC bot for requesting media through Overseerr, Lidarr, and RomM, with Plex server monitoring and a plugin-based architecture for service integrations. Think [Requestrr](https://github.com/darkalfx/requestrr) but for IRC.
+An IRC bot for requesting media through Overseerr (Radarr/Sonarr), Lidarr, Shelfmark, and RomM, with Plex server monitoring and a plugin-based architecture for service integrations. Think [Requestrr](https://github.com/darkalfx/requestrr) but for IRC.
 
 ## Features
 
 - **Media Requests** - Search and request movies/TV shows via Overseerr, music via Lidarr
-- **Plex Monitoring** - Now playing streams, library stats with growth, and auto-announced recently added items (optional Tautulli enrichment)
+- **Book Downloads** - Search and download ebooks/audiobooks via [Shelfmark](https://github.com/calibrain/shelfmark)
 - **ROM Management** - Browse, search, and request ROMs via [RomM](https://github.com/rommapp/romm) with optional IGDB metadata enrichment
+- **Plex Monitoring** - Now playing streams, library stats with growth, and auto-announced recently added items (optional Tautulli enrichment)
 - **Rich Formatting** - Search results with TMDB/MusicBrainz/IGDB links, synopsis, and mIRC color formatting
 - **Notifications** - Recently-added ROM and Plex announcements to configured IRC channels
 - **Plugin Architecture** - Modular design for adding new service integrations
@@ -24,7 +25,7 @@ An IRC bot for requesting media through Overseerr, Lidarr, and RomM, with Plex s
    cp config/config.example.yaml bot-data/config.yaml
    ```
 
-2. Edit `bot-data/config.yaml` with your IRC server, Overseerr, Lidarr, Plex, and/or RomM details.
+2. Edit `bot-data/config.yaml` with your IRC server, Overseerr, Lidarr, Plex, RomM, and/or Shelfmark details.
 
 3. Create a `.env` file:
    ```bash
@@ -57,6 +58,8 @@ python main.py path/to/config.yaml
 | `!request movie <title>` | Search for a movie |
 | `!request tv <title>` | Search for a TV show |
 | `!request music <artist>` | Search for a music artist |
+| `!request book <title>` | Search for an ebook |
+| `!request audiobook <title>` | Search for an audiobook |
 | `!select <number>` | Select from search results |
 | `!status` | Check your pending requests |
 
@@ -144,12 +147,18 @@ romm:
     channel: "#romm"
     interval: 300
 
+shelfmark:
+  url: "http://shelfmark:8080"
+  username: "bot_user"
+  password: "${SHELFMARK_PASSWORD}"
+
 plugins:
   enabled:
     - overseerr
     # - lidarr
     # - plex
     # - romm
+    # - shelfmark
 
 database:
   path: "/data/bot.db"
@@ -173,6 +182,7 @@ web:
 | `PLEX_TOKEN` | Plex authentication token (referenced in config via `${PLEX_TOKEN}`) |
 | `TAUTULLI_API_KEY` | Tautulli API key for enriched now-playing data (optional) |
 | `ROMM_PASSWORD` | RomM password (referenced in config via `${ROMM_PASSWORD}`) |
+| `SHELFMARK_PASSWORD` | Shelfmark password (referenced in config via `${SHELFMARK_PASSWORD}`) |
 | `IGDB_CLIENT_ID` | Twitch/IGDB client ID for game metadata enrichment (optional) |
 | `IGDB_CLIENT_SECRET` | Twitch/IGDB client secret (optional) |
 | `WEB_PASSWORD` | Password for the web config UI (required to enable it) |
@@ -207,6 +217,7 @@ bot/
     lidarr/         # Lidarr integration (music)
     plex/           # Plex monitoring (now playing, stats, recently added)
     romm/           # RomM integration (ROMs/retro games)
+    shelfmark/      # Shelfmark integration (ebooks/audiobooks)
   web/
     server.py       # aiohttp app factory
     routes.py       # Login, config, save, logout handlers
@@ -221,7 +232,7 @@ main.py             # Entry point
 
 ```bash
 source .venv/bin/activate
-python -m pytest tests/ -v    # 381 tests
+python -m pytest tests/ -v    # 431 tests
 ```
 
 ## License

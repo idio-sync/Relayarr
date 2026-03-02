@@ -194,6 +194,10 @@ async def main():
         )
         bot.dispatcher.register_plugin(coordinator)
 
+    # Check if IRC is configured (not still using example defaults)
+    irc_server = config["irc"]["server"]
+    irc_configured = irc_server not in ("irc.example.com", "")
+
     # Start web UI
     web_password = os.environ.get("WEB_PASSWORD")
     web_runner = None
@@ -204,6 +208,29 @@ async def main():
         web_runner = await run_web_server(app, port=web_port)
     else:
         logger.warning("WEB_PASSWORD not set, web UI disabled")
+
+    if not irc_configured:
+        if web_runner:
+            logger.info(
+                "IRC not configured — waiting for configuration via web UI on port %s",
+                config.get("web.port", 9090),
+            )
+            # Keep running until interrupted so the web UI stays up
+            try:
+                await asyncio.Event().wait()
+            finally:
+                await web_runner.cleanup()
+                await db.close()
+                logger.info("Shutdown complete")
+            return
+        else:
+            logger.error(
+                "IRC not configured and web UI disabled. "
+                "Set WEB_PASSWORD to enable the web UI, or edit %s directly.",
+                config_path,
+            )
+            await db.close()
+            return
 
     # Run bot
     logger.info(f"Connecting to {config['irc']['server']}:{config['irc']['port']}")

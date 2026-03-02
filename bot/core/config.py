@@ -1,9 +1,13 @@
+import logging
 import os
 import re
+import shutil
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 
 class Config:
@@ -15,7 +19,8 @@ class Config:
     @classmethod
     def load(cls, path: Path) -> "Config":
         if not path.exists():
-            raise FileNotFoundError(f"Config file not found: {path}")
+            cls._create_default(path)
+            logger.info(f"Created default config at {path}")
 
         with open(path) as f:
             raw = f.read()
@@ -64,3 +69,21 @@ class Config:
 
     def __contains__(self, key: str) -> bool:
         return key in self._data
+
+    @staticmethod
+    def _create_default(path: Path) -> None:
+        """Copy example config to the target path as a starting point."""
+        # In Docker, the example config is at /app/config.example.yaml
+        # In development, it's at config/config.example.yaml relative to project root
+        candidates = [
+            Path("/app/config.example.yaml"),
+            Path(__file__).resolve().parent.parent.parent / "config" / "config.example.yaml",
+        ]
+        for src in candidates:
+            if src.exists():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, path)
+                return
+        raise FileNotFoundError(
+            f"Config file not found at {path} and no example config available to copy"
+        )

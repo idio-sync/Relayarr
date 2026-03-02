@@ -80,7 +80,8 @@ class TestConfigLoading:
         assert config.get("irc.nonexistent", "default") == "default"
         os.unlink(path)
 
-    def test_missing_file_raises(self):
-        import pytest
-        with pytest.raises(FileNotFoundError):
-            Config.load(Path("/nonexistent/config.yaml"))
+    def test_missing_file_creates_default(self, tmp_path):
+        config_path = tmp_path / "config.yaml"
+        config = Config.load(config_path)
+        assert config_path.exists()
+        assert config.get("irc.server") is not None

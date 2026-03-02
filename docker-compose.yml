@@ -1,6 +1,6 @@
 services:
   irc-bot:
-    build: .
+    image: ghcr.io/idio-sync/relayarr:latest
     container_name: relayarr
     restart: unless-stopped
     ports:
